@@ -157,16 +157,74 @@ td {
   overflow-x: auto;
 }
 
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
 .search-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.75rem;
 }
 
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.inline-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+}
+
+.inline-form.two-line {
+  grid-template-columns: 1fr 1fr auto;
+}
+
+.control-group {
+  display: grid;
+  gap: 1rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.feedback {
+  margin: 0.75rem 0 0;
+}
+
+.feedback.success {
+  color: #2d6b47;
+}
+
+.feedback.error {
+  color: #a33434;
+}
+
+.table-button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.table-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.detail-grid.compact {
+  margin-top: 1rem;
 }
 
 .detail-grid div {
@@ -193,7 +251,15 @@ td {
   }
 
   .card-grid,
-  .detail-grid {
+  .detail-grid,
+  .action-grid,
+  .form-grid,
+  .inline-form,
+  .inline-form.two-line {
     grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    flex-direction: column;
   }
 }
