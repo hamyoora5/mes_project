@@ -9,6 +9,15 @@ const initialProductionForm = { producedQty: "" };
 const initialDefectForm = { defectType: "", defectQty: "" };
 const initialStopForm = { stopReason: "" };
 
+/**
+ * 생산 진행 제어 화면입니다.
+ *
+ * 이 페이지는 생산 현장의 핵심 액션을 한 화면에 모아 둔 운영 화면입니다.
+ * 작업 선택 후 생산량 입력, 불량 등록, 중단, 재가동, 종료를 순차적으로 수행하고
+ * 그 결과를 바로 아래 실행 이력 표에서 확인할 수 있습니다.
+ *
+ * @returns {JSX.Element} 생산 실행 제어 및 이력 화면
+ */
 export function ProductionPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedId, setSelectedId] = useState("");
@@ -24,6 +33,12 @@ export function ProductionPage() {
     [selectedId, refreshKey]
   );
 
+  /**
+   * 처음 진입 시 아직 선택된 작업이 없다면 완료되지 않은 첫 작업을 기본 선택합니다.
+   *
+   * 이렇게 해 두면 사용자가 페이지에 들어오자마자 빈 화면을 보는 시간을 줄일 수
+   * 있고, 가장 먼저 조작할 가능성이 큰 작업이 자동으로 표시됩니다.
+   */
   useEffect(() => {
     if (!selectedId && data?.length) {
       const firstActive = data.find((item) => item.status !== "COMPLETED");
@@ -39,11 +54,26 @@ export function ProductionPage() {
     setRefreshKey((current) => current + 1);
   }
 
+  /**
+   * 이전 성공/실패 메시지를 지웁니다.
+   *
+   * 액션을 연속으로 수행할 때 지난 메시지가 남아 있으면 현재 결과와 섞여 보이기
+   * 때문에 액션 시작 전에 항상 초기화합니다.
+   */
   function resetMessages() {
     setMessage("");
     setErrorMessage("");
   }
 
+  /**
+   * 생산 관련 액션을 공통 실행하는 래퍼 함수입니다.
+   *
+   * 페이지 안의 여러 버튼이 모두 "API 호출 -> 메시지 표시 -> 목록 새로고침" 패턴을
+   * 따르기 때문에 한 곳에 모아 중복을 줄였습니다.
+   *
+   * @param {() => Promise<any>} action 실행할 API 호출 함수
+   * @returns {Promise<void>}
+   */
   async function execute(action) {
     resetMessages();
 

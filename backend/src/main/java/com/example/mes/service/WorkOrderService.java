@@ -27,6 +27,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * 작업지시와 생산 실행 흐름의 핵심 비즈니스 로직을 처리합니다.
+ *
+ * <p>작업 시작, 생산량 입력, 불량 등록, 중단/재가동, 종료,
+ * 생산 이력 조회, ERP 조회까지 한 곳에서 관리합니다.
+ */
 @Service
 @Transactional(readOnly = true)
 public class WorkOrderService {
@@ -48,6 +54,12 @@ public class WorkOrderService {
         this.productionResultMesRepository = productionResultMesRepository;
     }
 
+    /**
+     * 작업지시를 신규 등록합니다.
+     *
+     * @param request 작업지시 등록 요청
+     * @return 저장된 작업지시 응답
+     */
     @Transactional
     public WorkOrderResponse create(CreateWorkOrderRequest request) {
         if (workOrderRepository.existsByWorkOrderNo(request.workOrderNo())) {
@@ -67,12 +79,23 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrderRepository.save(workOrder));
     }
 
+    /**
+     * 전체 작업지시를 조회합니다.
+     *
+     * @return 작업지시 목록
+     */
     public List<WorkOrderResponse> findAll() {
         return workOrderRepository.findAll().stream()
                 .map(WorkOrderResponse::from)
                 .toList();
     }
 
+    /**
+     * 특정 작업지시의 생산 실행 이력을 조회합니다.
+     *
+     * @param id 작업지시 ID
+     * @return 실행 이력 목록
+     */
     public List<ProductionRunHistoryResponse> getHistory(Long id) {
         WorkOrder workOrder = getWorkOrder(id);
         return productionRunHistoryRepository.findAllByWorkOrderOrderByRunSeqAsc(workOrder).stream()
@@ -80,12 +103,23 @@ public class WorkOrderService {
                 .toList();
     }
 
+    /**
+     * ERP 조회용 생산 결과 목록을 반환합니다.
+     *
+     * @return 완료된 생산 결과 목록
+     */
     public List<ErpResultResponse> getErpResults() {
         return productionResultMesRepository.findAllByOrderByCompletedAtDesc().stream()
                 .map(ErpResultResponse::from)
                 .toList();
     }
 
+    /**
+     * 작업을 시작하고 첫 생산 이력을 생성합니다.
+     *
+     * @param id 작업지시 ID
+     * @return 시작 상태가 반영된 작업지시
+     */
     @Transactional
     public WorkOrderResponse start(Long id) {
         WorkOrder workOrder = getWorkOrder(id);
@@ -102,6 +136,13 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrder);
     }
 
+    /**
+     * 진행 중인 작업을 중단합니다.
+     *
+     * @param id 작업지시 ID
+     * @param request 중단 사유 요청
+     * @return 상태가 반영된 작업지시
+     */
     @Transactional
     public WorkOrderResponse stop(Long id, StopWorkOrderRequest request) {
         WorkOrder workOrder = getWorkOrder(id);
@@ -117,6 +158,12 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrder);
     }
 
+    /**
+     * 중단된 작업을 재가동하고 새로운 실행 구간을 생성합니다.
+     *
+     * @param id 작업지시 ID
+     * @return 상태가 반영된 작업지시
+     */
     @Transactional
     public WorkOrderResponse resume(Long id) {
         WorkOrder workOrder = getWorkOrder(id);
@@ -133,6 +180,12 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrder);
     }
 
+    /**
+     * 진행 중인 작업을 종료하고 MES 생산 결과를 집계합니다.
+     *
+     * @param id 작업지시 ID
+     * @return 완료 상태가 반영된 작업지시
+     */
     @Transactional
     public WorkOrderResponse complete(Long id) {
         WorkOrder workOrder = getWorkOrder(id);
@@ -166,6 +219,13 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrder);
     }
 
+    /**
+     * 진행 중인 실행 이력에 생산 수량을 누적합니다.
+     *
+     * @param id 작업지시 ID
+     * @param request 생산량 입력 요청
+     * @return 상태가 반영된 작업지시
+     */
     @Transactional
     public WorkOrderResponse recordProduction(Long id, RecordProductionRequest request) {
         WorkOrder workOrder = getWorkOrder(id);
@@ -180,6 +240,13 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrder);
     }
 
+    /**
+     * 진행 중인 실행 이력에 불량 수량을 누적하고 불량 이력을 저장합니다.
+     *
+     * @param id 작업지시 ID
+     * @param request 불량 등록 요청
+     * @return 상태가 반영된 작업지시
+     */
     @Transactional
     public WorkOrderResponse registerDefect(Long id, RegisterDefectRequest request) {
         WorkOrder workOrder = getWorkOrder(id);
@@ -201,16 +268,34 @@ public class WorkOrderService {
         return WorkOrderResponse.from(workOrder);
     }
 
+    /**
+     * 작업지시 ID로 엔티티를 조회합니다.
+     *
+     * @param id 작업지시 ID
+     * @return 조회된 작업지시 엔티티
+     */
     private WorkOrder getWorkOrder(Long id) {
         return workOrderRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "작업지시를 찾을 수 없습니다."));
     }
 
+    /**
+     * 가장 최근 실행 이력을 조회합니다.
+     *
+     * @param workOrder 작업지시 엔티티
+     * @return 가장 마지막 실행 이력
+     */
     private ProductionRunHistory getCurrentRun(WorkOrder workOrder) {
         return productionRunHistoryRepository.findTopByWorkOrderOrderByRunSeqDesc(workOrder)
                 .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "진행 중인 생산 이력이 없습니다."));
     }
 
+    /**
+     * 현재 작업이 실제로 진행 중인지 확인한 뒤 실행 이력을 반환합니다.
+     *
+     * @param workOrder 작업지시 엔티티
+     * @return 진행 중인 실행 이력
+     */
     private ProductionRunHistory getInProgressRun(WorkOrder workOrder) {
         ProductionRunHistory currentRun = getCurrentRun(workOrder);
         if (workOrder.getStatus() != WorkOrderStatus.IN_PROGRESS) {
@@ -219,10 +304,22 @@ public class WorkOrderService {
         return currentRun;
     }
 
+    /**
+     * 작업지시 ID를 기반으로 일일생산코드를 생성합니다.
+     *
+     * @param workOrderId 작업지시 ID
+     * @return 생성된 일일생산코드
+     */
     private String generateDailyProdCode(Long workOrderId) {
         return "DP" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + String.format("%03d", workOrderId);
     }
 
+    /**
+     * 작업지시에 발급된 일일생산코드를 반환합니다.
+     *
+     * @param workOrder 작업지시 엔티티
+     * @return 기존에 발급된 일일생산코드
+     */
     private String getDailyProdCode(WorkOrder workOrder) {
         if (workOrder.getDailyProdCode() == null || workOrder.getDailyProdCode().isBlank()) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "일일생산코드가 생성되지 않았습니다.");

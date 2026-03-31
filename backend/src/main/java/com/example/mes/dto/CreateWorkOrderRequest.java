@@ -4,6 +4,17 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * 작업지시 등록 요청 DTO입니다.
+ *
+ * @param workOrderNo 작업지시 번호
+ * @param productCode 제품 코드
+ * @param productName 제품명
+ * @param plannedQty 계획 수량
+ * @param lineNo 생산 라인 번호
+ * @param equipmentId 설비 또는 작업장 식별자
+ * @param workerId 작업자 식별자
+ */
 public record CreateWorkOrderRequest(
         @NotBlank(message = "작업지시번호는 필수입니다.")
         String workOrderNo,

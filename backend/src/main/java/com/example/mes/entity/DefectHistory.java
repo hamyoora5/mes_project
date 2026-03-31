@@ -13,6 +13,9 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+/**
+ * 불량 발생 이력을 저장하는 엔티티입니다.
+ */
 @Entity
 @Table(name = "defect_history")
 public class DefectHistory {
@@ -53,6 +56,9 @@ public class DefectHistory {
         this.defectQty = defectQty;
     }
 
+    /**
+     * 생성 시점에 불량 발생 시각이 없으면 현재 시각을 기본값으로 채웁니다.
+     */
     @PrePersist
     void prePersist() {
         if (occurredAt == null) {

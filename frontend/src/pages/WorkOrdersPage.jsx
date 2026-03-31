@@ -15,6 +15,15 @@ const initialForm = {
   workerId: ""
 };
 
+/**
+ * 작업지시 등록과 시작을 담당하는 화면입니다.
+ *
+ * MES 흐름의 첫 단계는 작업지시를 준비하고 실제 생산으로 진입시키는 것입니다.
+ * 그래서 이 페이지는 등록 화면과 목록, 그리고 "작업 시작" 액션을 한 곳에 배치해
+ * 사용자가 빠르게 시작 상태까지 도달할 수 있게 구성했습니다.
+ *
+ * @returns {JSX.Element} 작업지시 관리 화면
+ */
 export function WorkOrdersPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [form, setForm] = useState(initialForm);
@@ -36,6 +45,12 @@ export function WorkOrdersPage() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  /**
+   * 작업지시 등록 폼 제출을 처리합니다.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} event 폼 제출 이벤트
+   * @returns {Promise<void>}
+   */
   async function handleCreate(event) {
     event.preventDefault();
     setSubmitting(true);
@@ -57,6 +72,15 @@ export function WorkOrdersPage() {
     }
   }
 
+  /**
+   * READY 상태의 작업을 시작합니다.
+   *
+   * 시작과 동시에 백엔드에서 DP 코드가 발급되므로, 성공 메시지에도 DP 코드를
+   * 포함해 사용자가 상태 변화를 즉시 확인할 수 있게 했습니다.
+   *
+   * @param {number|string} id 작업지시 ID
+   * @returns {Promise<void>}
+   */
   async function handleStart(id) {
     setMessage("");
     setErrorMessage("");

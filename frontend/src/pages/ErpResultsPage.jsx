@@ -4,6 +4,15 @@ import { SectionCard } from "../components/SectionCard";
 import { useAsync } from "../hooks/useAsync";
 import { formatDateTime } from "../utils/format";
 
+/**
+ * ERP 전송 결과 화면입니다.
+ *
+ * 생산 종료 후 집계된 결과를 ERP 관점에서 검토하기 위한 조회 페이지입니다.
+ * 실제 ERP 전송 기능을 아직 구현하지 않았더라도, 어떤 데이터가 전송 대상인지
+ * 먼저 확인할 수 있게 해 주는 역할을 합니다.
+ *
+ * @returns {JSX.Element} ERP 결과 조회 화면
+ */
 export function ErpResultsPage() {
   const { data, loading, error } = useAsync(() => erpApi.getResults(), []);
 

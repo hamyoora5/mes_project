@@ -15,6 +15,9 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+/**
+ * 작업 종료 후 저장되는 MES 생산 집계 결과 엔티티입니다.
+ */
 @Entity
 @Table(name = "production_result_mes")
 public class ProductionResultMes {
@@ -71,10 +74,25 @@ public class ProductionResultMes {
         this.completedAt = completedAt;
     }
 
+    /**
+     * 샘플 데이터 적재용으로 결과 상태를 직접 지정합니다.
+     *
+     * @param status 적용할 생산 결과 상태
+     */
+    public void applySeedStatus(ProductionResultStatus status) {
+        this.status = status;
+    }
+
+    /**
+     * 생산 결과를 PASS 상태로 변경합니다.
+     */
     public void markPass() {
         this.status = ProductionResultStatus.PASS;
     }
 
+    /**
+     * 생산 결과를 DEFECT 상태로 변경합니다.
+     */
     public void markDefect() {
         this.status = ProductionResultStatus.DEFECT;
     }

@@ -14,6 +14,19 @@ const initialAiForm = {
   result: "PASS"
 };
 
+/**
+ * 품질 검사 등록과 AI 결과 반영을 담당하는 화면입니다.
+ *
+ * 이 페이지는 MES에서 품질 흐름을 검증하기 위한 핵심 화면입니다.
+ * - DP 코드로 품질 검사 생성
+ * - QT 번호로 AI 결과 반영
+ * - QT 번호로 검사 결과 조회
+ *
+ * 현재 프로젝트는 실제 AI 추론 서버 구현보다 "판정 결과를 MES 상태 흐름에 반영하는
+ * 과정"이 중요하므로, 이 페이지는 그 연결을 시연하는 역할을 합니다.
+ *
+ * @returns {JSX.Element} 품질 등록/반영/조회 화면
+ */
 export function QualityPage() {
   const [createForm, setCreateForm] = useState(initialCreateForm);
   const [aiForm, setAiForm] = useState(initialAiForm);
@@ -27,6 +40,12 @@ export function QualityPage() {
     setError("");
   }
 
+  /**
+   * 새로운 품질 검사 대상을 생성합니다.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} event 폼 제출 이벤트
+   * @returns {Promise<void>}
+   */
   async function handleCreate(event) {
     event.preventDefault();
     resetFeedback();
@@ -43,6 +62,12 @@ export function QualityPage() {
     }
   }
 
+  /**
+   * 특정 QT에 AI 판정 결과를 반영합니다.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} event 폼 제출 이벤트
+   * @returns {Promise<void>}
+   */
   async function handleApplyAi(event) {
     event.preventDefault();
     resetFeedback();
@@ -59,6 +84,11 @@ export function QualityPage() {
     }
   }
 
+  /**
+   * QT 번호 기준으로 품질 검사 결과를 조회합니다.
+   *
+   * @returns {Promise<void>}
+   */
   async function handleSearch() {
     resetFeedback();
 
