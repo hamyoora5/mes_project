@@ -2,6 +2,15 @@
 
 작업지시부터 생산실적, 불량, 중단/재가동, ERP 연동, AI 기반 미생물 자동 판정(판정 결과 가정)까지 포함한 MES 통합 설계 문서입니다.
 
+> **개인 학습 프로젝트입니다.**
+> 실제 공장 데이터나 운영 시스템과 연결되어 있지 않으며, 가상의 제조 환경을 전제로
+> 설계·구현했습니다. AI 품질 판정은 실제 미생물 이미지 분석 모델이 아니라
+> **판정 결과를 가정한 시뮬레이션**이고, ERP 역시 연동 인터페이스만 구현하고
+> 상대 시스템은 가상입니다.
+>
+> 목적은 동작하는 제품을 만드는 것이 아니라, **제조 실행 과정을 상태와 전이로
+> 모델링하고 추적 가능한 데이터 구조를 설계하는 연습**이었습니다.
+
 ---
 
 ## 프로젝트 한눈에 보기
@@ -27,6 +36,42 @@
 ## 전체 흐름
 
 `ERP 작업지시 생성 → MES 작업지시 수신 → 작업 시작 + 일일생산코드(DP) 생성 → 생산 진행 → 불량 발생 / 작업 중단 / 재가동 → 작업 종료 → 생산실적 집계 → 실험번호(QT) 생성 및 바코드 라벨 부착 → 실험물 관리 → 가상 AI 판정 → 적합 결과 도출 → quality_test.result 반영 → production.status 반영 → ERP 저장`
+
+```mermaid
+flowchart TB
+    ERP1[ERP<br/>작업지시 생성] --> WO[MES 작업지시 수신<br/>work_order]
+
+    subgraph EXEC["생산 실행"]
+        direction TB
+        ST[작업 시작<br/>일일생산코드 DP 발급] --> RUN[생산 진행]
+        RUN --> DEF[불량 등록<br/>defect_history]
+        RUN --> STOP[중단 / 재가동<br/>production_run_history]
+        DEF --> RUN
+        STOP --> RUN
+        RUN --> END1[작업 종료]
+    end
+
+    WO --> EXEC
+    END1 --> RES[생산실적 집계<br/>production_result_mes]
+
+    subgraph QC["품질 판정"]
+        direction TB
+        QT[실험번호 QT 생성<br/>바코드 라벨] --> AI[AI 미생물 판정]
+        AI --> JUDGE{PASS / FAIL}
+    end
+
+    RES --> QC
+    JUDGE -->|PASS| P1[quality_test.result = PASS<br/>production.status = PASS]
+    JUDGE -->|FAIL| P2[quality_test.result = FAIL<br/>production.status = DEFECT]
+    P1 --> ERP2[ERP 실적 반영<br/>production_result_erp]
+    P2 --> ERP2
+
+    RES -.판정 전.-> WAIT[WAIT_QC]
+```
+
+**추적성(Traceability) 의 축은 두 개의 코드**입니다 — 작업지시에서 발급되는
+`일일생산코드(DP)` 와 품질검사에서 발급되는 `실험번호(QT)`. 이 둘을 연결해
+두면 완제품 판정 결과에서 생산 시점·설비·중단 이력까지 역추적할 수 있습니다.
 
 ## 시스템 구성
 
@@ -198,7 +243,27 @@ spring:
 
 ## 상태 전이 로직
 
+제조 실행의 모든 변화를 **상태와 전이 이벤트로 정의**하고, 허용된 전이만 통과시키는
+구조입니다. 현장에서 생기는 중단·재가동 같은 비정형 상황을 예외 처리가 아니라
+**모델의 일부**로 다루는 것이 설계 의도입니다.
+
 ### 작업지시 상태
+
+```mermaid
+stateDiagram-v2
+    [*] --> READY : ERP 작업지시 수신
+    READY --> IN_PROGRESS : 작업 시작<br/>(일일생산코드 DP 발급)
+    IN_PROGRESS --> STOPPED : 작업 중단<br/>(중단사유 기록)
+    STOPPED --> IN_PROGRESS : 재가동
+    IN_PROGRESS --> COMPLETED : 작업 종료<br/>(실적 집계)
+    COMPLETED --> [*]
+
+    note right of STOPPED
+        중단 구간은 production_run_history 에
+        별도 이력으로 남아 가동률 산출의
+        분모·분자를 구분하는 근거가 됩니다
+    end note
+```
 
 | 이벤트 | 변경 상태 |
 | --- | --- |
@@ -478,6 +543,24 @@ npm run dev
 | ERP vs MES 역할 분리 | ERP는 계획/집계, MES는 실행/기록 담당 |
 | Traceability 확보 | 작업지시, 생산코드, 품질결과 기반 추적 가능 |
 | 스마트팩토리 구현 | AI + MES + ERP 통합 구조 설계 |
+
+## 한계와 확장 방향
+
+이 프로젝트는 **생산 실행(execution) 계층**에 집중했고, 그 위의 계획 계층은
+의도적으로 범위 밖에 두었습니다. 아래가 이어서 다루고자 하는 지점입니다.
+
+| 한계 | 확장 방향 |
+| --- | --- |
+| ERP 작업지시를 **주어진 것으로 받음** — 순서·설비 배정은 MES 밖에서 결정 | 작업지시 생성 단계의 **스케줄링 최적화**(설비 배정·투입 순서) 와 연결 |
+| 중단 이력은 기록만 하고 분석하지 않음 | 중단 사유별 빈도·시간을 집계해 **설비종합효율(OEE)** 산출 |
+| AI 판정 결과가 품질 상태 변경에서 끝남 | 불량 발생 패턴을 생산 조건과 결합해 **예방적 공정 조정**으로 연결 |
+| 단일 공정 전제 | 다공정·재공(WIP) 흐름을 반영한 **흐름 생산(flow shop) 모델** 확장 |
+| 실적이 사후 집계 | 실적 추이를 **계획 재수립(rescheduling)** 입력으로 피드백 |
+
+특히 첫 번째 항목 — *"작업지시는 누가 어떤 기준으로 만드는가"* — 가
+이 시스템을 만들면서 가장 크게 남은 질문이었고,
+[`lala_factory`](https://github.com/hamyoora5/lala_factory) 의 설비 배정 로직으로
+일부를 다뤘습니다.
 
 ## 한줄 정리
 
